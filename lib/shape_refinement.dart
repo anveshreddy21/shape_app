@@ -92,7 +92,7 @@ List<double> triangleAngles(Offset A, Offset B, Offset C) {
   double c = distance(A, B);
 
   double alpha = acos((b * b + c * c - a * a) / (2 * b * c));
-  double beta =  acos((a * a + c * c - b * b) / (2 * a * c));
+  double beta = acos((a * a + c * c - b * b) / (2 * a * c));
   double gamma = acos((a * a + b * b - c * c) / (2 * a * b));
 
   return [alpha, beta, gamma].map((rad) => rad * (180 / pi)).toList();
@@ -509,8 +509,7 @@ List<Offset> perfectRectangle(List<Offset> vertices) {
   }
 
   // Find the longest distance from O
-  double OAPrime =
-      vertices.map((vertex) => distance(O, vertex)).reduce(max);
+  double OAPrime = vertices.map((vertex) => distance(O, vertex)).reduce(max);
 
   Offset APrime = rotateScalePoint(A, O, 0, OAPrime / distance(O, A));
 
@@ -630,10 +629,21 @@ List<Offset> finalPolygon(List<Offset> vertices) {
   // Determine if all sides are approximately equal
   final double maxSide = sideLengths.reduce(max);
   final double minSide = sideLengths.reduce(min);
-  const double toleranceRatio = 1.8; // Tolerance of 50%
+  const double toleranceRatio = 1.8; // Tolerance of 80%
   if (maxSide / minSide > toleranceRatio) {
     // Not a regular polygon, return the original vertices
     return vertices;
+  }
+  if (vertices.length % 2 == 0) {
+    List<double> angles = [];
+    int nBy2 = vertices.length ~/ 2;
+    for (int i = 0; i < nBy2; i++) {
+      Offset p1 = vertices[i];
+      Offset p2 = vertices[i + nBy2];
+      double angleWithHorizontal = atan((p2.dy - p1.dy) / (p2.dx - p1.dx));
+      angles.add(angleWithHorizontal * 180 / pi);
+    }
+    print("angles: $angles");
   }
 
   // Calculate the angle of each vertex for a regular polygon
@@ -645,50 +655,53 @@ List<Offset> finalPolygon(List<Offset> vertices) {
     vertices.first.dy - centroid.dy,
     vertices.first.dx - centroid.dx,
   );
+  double d = 0.5 * maxSide + 0.5 * minSide;
+  double r = d / (2 * sin(pi / n));
 
   // Generate the vertices of a regular polygon
   for (int i = 0; i < n; i++) {
     double angle = startAngle + angleIncrement * i;
     regularVertices.add(Offset(
-      centroid.dx + (0.5*maxSide+0.5*minSide) * cos(angle),
-      centroid.dy + (0.5*maxSide+0.5*minSide) * sin(angle),
+      centroid.dx + r * cos(angle),
+      centroid.dy + r * sin(angle),
     ));
   }
 
   return alignBaseWithHorizontal(regularVertices);
 }
 
-
 //Perfecting the regular polygon
 
-List<Offset> alignBaseWithHorizontal(List<Offset> vertices, {double threshold = 0.25}) {
+List<Offset> alignBaseWithHorizontal(List<Offset> vertices,
+    {double threshold = 0.28}) {
   // Sort the vertices based on the 'y' value to get the bottom ones.
-  List<Offset> bottomVertices = List<Offset>.from(vertices)..sort((a, b) => b.dy.compareTo(a.dy));
-  
+  List<Offset> bottomVertices = List<Offset>.from(vertices)
+    ..sort((a, b) => b.dy.compareTo(a.dy));
   // Take the bottom two points which form the potential base.
   Offset p1 = bottomVertices[0];
   Offset p2 = bottomVertices[1];
-  
+
   // Calculate the angle of the base with the horizontal axis.
   double angleWithHorizontal = atan2(p2.dy - p1.dy, p2.dx - p1.dx);
-  
 
   double rotationAngle = -angleWithHorizontal;
+  print(rotationAngle);
 
+  
 
-  if(angleWithHorizontal.abs() > threshold) {
+  if (angleWithHorizontal.abs() > threshold) {
     // The base is already aligned with the horizontal axis.
     return vertices;
   }
-  
+
   // Calculate the angle needed to rotate the base to align with the horizontal axis.
-  
 
   // Find the centroid of the polygon to use as the pivot for rotation.
   Offset centroid = vertices.fold(
-    Offset.zero,
-    (Offset sum, Offset v) => sum + v,
-  ) / vertices.length.toDouble();
+        Offset.zero,
+        (Offset sum, Offset v) => sum + v,
+      ) /
+      vertices.length.toDouble();
 
   // Rotate all vertices around the centroid by the calculated angle.
   List<Offset> rotatedVertices = vertices.map((vertex) {
@@ -703,7 +716,6 @@ List<Offset> alignBaseWithHorizontal(List<Offset> vertices, {double threshold = 
 
   return rotatedVertices;
 }
-
 
 //Polygon convex or not
 bool isConvexPolygon(List<Offset> vertices) {
@@ -727,10 +739,9 @@ bool isConvexPolygon(List<Offset> vertices) {
       if ((crossProductZ > 0) != sign) return false;
     }
   }
- 
+
   return true; // No sign change found, polygon is convex.
 }
-
 
 //Curve Handling
 

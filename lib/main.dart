@@ -91,7 +91,7 @@ class MyPainter extends CustomPainter {
     Paint paint = Paint()
       ..color = Colors.black
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = 5.0;
+      ..strokeWidth = 7.0;
 
     for (int i = 0; i < points.length - 1; i++) {
       canvas.drawLine(points[i], points[i + 1], paint);
@@ -202,5 +202,3 @@ class MyPainter extends CustomPainter {
 }
 
 
-
-//made changes in new branch only
