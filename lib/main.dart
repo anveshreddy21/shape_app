@@ -33,6 +33,10 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Drawing Shapes App'),
+        backgroundColor: Color.fromARGB(255, 52, 155, 158),
+      ),
       body: Builder(
         builder: (context) => GestureDetector(
           onPanUpdate: (details) {
@@ -91,7 +95,7 @@ class MyPainter extends CustomPainter {
     Paint paint = Paint()
       ..color = Colors.black
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = 7.0;
+      ..strokeWidth = 6.0;
 
     for (int i = 0; i < points.length - 1; i++) {
       canvas.drawLine(points[i], points[i + 1], paint);
@@ -103,14 +107,14 @@ class MyPainter extends CustomPainter {
       ..strokeWidth = 7.0;
 
     for (var point in rdpPoints) {
-      canvas.drawCircle(point, 4.0, rdpPaint);
+      canvas.drawCircle(point, 6.0, rdpPaint);
     }
 
     Paint shapePaint = Paint()
       ..style = PaintingStyle.stroke
       ..color = Colors.blue
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = 5.0;
+      ..strokeWidth = 6.0;
 
     if (shape['shape'] == 'Circle') {
       canvas.drawCircle(shape['center'], shape['radius'], shapePaint);

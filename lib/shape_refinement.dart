@@ -684,6 +684,109 @@ List<Offset> finalPolygon(List<Offset> vertices) {
   return alignPolygon(regularVertices);
 }
 
+List<Offset> alignPolygon(List<Offset> vertices) {
+  Offset centroid(List<Offset> vertices) {
+    double centerX = 0.0, centerY = 0.0;
+    for (var vertex in vertices) {
+      centerX += vertex.dx;
+      centerY += vertex.dy;
+    }
+    return Offset(centerX / vertices.length, centerY / vertices.length);
+  }
+
+  double angleWithHorizontal(Offset a, Offset b) {
+    return atan2(b.dy - a.dy, b.dx - a.dx);
+  }
+
+  double determineRotationAngle(List<double> angles) {
+    double minDistance = double.infinity;
+    double rotationAngle = 0.0;
+
+    for (var angle in angles) {
+      // Normalize the angle between -π to π
+      double normalizedAngle = angle.remainder(2 * pi);
+      if (normalizedAngle > pi) {
+        normalizedAngle -= 2 * pi;
+      } else if (normalizedAngle < -pi) {
+        normalizedAngle += 2 * pi;
+      }
+
+      // Check distance to horizontal axis (0 or π)
+      double distanceToHorizontal =
+          min(normalizedAngle.abs(), (normalizedAngle - pi).abs());
+
+      // Check distance to vertical axis (-π/2 or π/2)
+      double distanceToVertical = min(
+          (normalizedAngle - pi / 2).abs(), (normalizedAngle + pi / 2).abs());
+
+      // Determine if the current angle is closer to the horizontal or vertical axis
+      double currentMinDistance, currentRotationAngle;
+      if (distanceToHorizontal <= distanceToVertical) {
+        currentMinDistance = distanceToHorizontal;
+        currentRotationAngle = (normalizedAngle.abs() <= pi / 2)
+            ? -normalizedAngle
+            : (normalizedAngle > 0)
+                ? pi - normalizedAngle
+                : -pi - normalizedAngle;
+      } else {
+        currentMinDistance = distanceToVertical;
+        currentRotationAngle = (normalizedAngle > 0)
+            ? pi / 2 - normalizedAngle
+            : -pi / 2 - normalizedAngle;
+      }
+
+      // Check if the current angle provides a closer alignment than what we have so far
+      if (currentMinDistance < minDistance) {
+        minDistance = currentMinDistance;
+        rotationAngle = currentRotationAngle;
+      }
+    }
+
+    return rotationAngle;
+  }
+
+  List<Offset> rotatePolygon(
+      List<Offset> vertices, double angle, Offset center) {
+    return vertices.map((vertex) {
+      final dx = vertex.dx - center.dx;
+      final dy = vertex.dy - center.dy;
+      final newX = center.dx + dx * cos(angle) - dy * sin(angle);
+      final newY = center.dy + dx * sin(angle) + dy * cos(angle);
+      return Offset(newX, newY);
+    }).toList();
+  }
+
+  final int vertexCount = vertices.length;
+  final Offset center = centroid(vertices);
+  List<double> principalDiagonalAngles = [];
+
+  if (vertexCount.isEven) {
+    for (int i = 0; i < vertexCount / 2; i++) {
+      principalDiagonalAngles.add(angleWithHorizontal(
+          vertices[i], vertices[(i + vertexCount ~/ 2) % vertexCount]));
+    }
+  } else {
+    for (int i = 0; i < vertexCount; i++) {
+      final oppositeMidIndex = (i + vertexCount ~/ 2) % vertexCount;
+      final oppositeMidPoint = Offset(
+        (vertices[(oppositeMidIndex + 1) % vertexCount].dx +
+                vertices[oppositeMidIndex].dx) /
+            2,
+        (vertices[(oppositeMidIndex + 1) % vertexCount].dy +
+                vertices[oppositeMidIndex].dy) /
+            2,
+      );
+      principalDiagonalAngles
+          .add(angleWithHorizontal(vertices[i], oppositeMidPoint));
+    }
+  }
+  
+  final rotationAngle = determineRotationAngle(principalDiagonalAngles);
+  return rotatePolygon(vertices, rotationAngle, center);
+}
+
+/*
+//Not using this right now
 //Perfecting the regular polygon
 
 List<Offset> alignBaseWithHorizontal(List<Offset> vertices,
@@ -730,110 +833,7 @@ List<Offset> alignBaseWithHorizontal(List<Offset> vertices,
   return rotatedVertices;
 }
 
-List<Offset> alignPolygon(List<Offset> vertices) {
-  Offset centroid(List<Offset> vertices) {
-    double centerX = 0.0, centerY = 0.0;
-    for (var vertex in vertices) {
-      centerX += vertex.dx;
-      centerY += vertex.dy;
-    }
-    return Offset(centerX / vertices.length, centerY / vertices.length);
-  }
-
-  double angleWithHorizontal(Offset a, Offset b) {
-    return atan2(b.dy - a.dy, b.dx - a.dx);
-  }
-
-  double determineRotationAngle(List<double> angles) {
-    double minHorizontalDistance = double.infinity;
-    double rotationAngleToHorizontal = 0.0;
-
-    // Find the smallest angle to align horizontally
-    for (var angle in angles) {
-      // Normalize the angle between -π to π
-      double normalizedAngle = angle.remainder(2 * pi);
-      if (normalizedAngle > pi) {
-        normalizedAngle -= 2 * pi;
-      } else if (normalizedAngle < -pi) {
-        normalizedAngle += 2 * pi;
-      }
-
-      final horizontalDistance =
-          min(normalizedAngle.abs(), (pi - normalizedAngle.abs()));
-      if (horizontalDistance < minHorizontalDistance) {
-        minHorizontalDistance = horizontalDistance;
-        rotationAngleToHorizontal = -normalizedAngle;
-      }
-    }
-
-    double minVerticalDistance = double.infinity;
-    double rotationAngleToVertical = 0.0;
-
-    // Find the smallest angle to align vertically
-    for (var angle in angles) {
-      // Normalize the angle between -π to π and then offset by -π/2 for vertical alignment
-      double normalizedAngle = (angle - pi / 2).remainder(2 * pi);
-      if (normalizedAngle > pi) {
-        normalizedAngle -= 2 * pi;
-      } else if (normalizedAngle < -pi) {
-        normalizedAngle += 2 * pi;
-      }
-
-      final verticalDistance =
-          min(normalizedAngle.abs(), (pi - normalizedAngle.abs()));
-      if (verticalDistance < minVerticalDistance) {
-        minVerticalDistance = verticalDistance;
-        rotationAngleToVertical = pi / 2 - angle;
-      }
-    }
-
-    // Compare which rotation angle is smaller and should be used
-    if (minHorizontalDistance <= minVerticalDistance) {
-      return rotationAngleToHorizontal;
-    } else {
-      return rotationAngleToVertical;
-    }
-  }
-
-  List<Offset> rotatePolygon(
-      List<Offset> vertices, double angle, Offset center) {
-    return vertices.map((vertex) {
-      final dx = vertex.dx - center.dx;
-      final dy = vertex.dy - center.dy;
-      final newX = center.dx + dx * cos(angle) - dy * sin(angle);
-      final newY = center.dy + dx * sin(angle) + dy * cos(angle);
-      return Offset(newX, newY);
-    }).toList();
-  }
-
-  final int vertexCount = vertices.length;
-  final Offset center = centroid(vertices);
-  List<double> principalDiagonalAngles = [];
-
-  if (vertexCount.isEven) {
-    for (int i = 0; i < vertexCount / 2; i++) {
-      principalDiagonalAngles.add(angleWithHorizontal(
-          vertices[i], vertices[(i + vertexCount ~/ 2) % vertexCount]));
-    }
-  } else {
-    for (int i = 0; i < vertexCount; i++) {
-      final oppositeMidIndex = (i + vertexCount ~/ 2) % vertexCount;
-      final oppositeMidPoint = Offset(
-        (vertices[(oppositeMidIndex + 1) % vertexCount].dx +
-                vertices[oppositeMidIndex].dx) /
-            2,
-        (vertices[(oppositeMidIndex + 1) % vertexCount].dy +
-                vertices[oppositeMidIndex].dy) /
-            2,
-      );
-      principalDiagonalAngles
-          .add(angleWithHorizontal(vertices[i], oppositeMidPoint));
-    }
-  }
-
-  final rotationAngle = determineRotationAngle(principalDiagonalAngles);
-  return rotatePolygon(vertices, rotationAngle, center);
-}
+*/
 
 //Curve Handling
 
