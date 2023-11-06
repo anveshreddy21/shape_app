@@ -608,11 +608,37 @@ List<Offset> finalQuadrilateral(List<Offset> vertices) {
   return idealQuadrilateral(idealQuad, 8.0);
 }
 
+//Polygon convex or not
+bool isConvexPolygon(List<Offset> vertices) {
+  if (vertices.length < 4) return true; // Triangles are always convex.
+
+  bool sign = false;
+  for (int i = 0; i < vertices.length; i++) {
+    Offset A = vertices[i];
+    Offset B = vertices[(i + 1) % vertices.length];
+    Offset C = vertices[(i + 2) % vertices.length];
+
+    Offset AB = B - A;
+    Offset BC = C - B;
+
+    double crossProductZ = AB.dx * BC.dy - AB.dy * BC.dx;
+    if (i == 0) {
+      // For the first time, save the sign of z of the cross product
+      sign = crossProductZ > 0;
+    } else {
+      // If the sign changes, then polygon is concave.
+      if ((crossProductZ > 0) != sign) return false;
+    }
+  }
+
+  return true; // No sign change found, polygon is convex.
+}
+
 //Irregular to Regular polygon handling
 List<Offset> finalPolygon(List<Offset> vertices) {
   final int n = vertices.length; // Number of vertices
   if (n < 3) return vertices; // Not enough vertices to form a polygon
-
+  
   // Calculate the centroid of the polygon
   final centroid = vertices.fold<Offset>(
         Offset.zero,
@@ -634,18 +660,6 @@ List<Offset> finalPolygon(List<Offset> vertices) {
     // Not a regular polygon, return the original vertices
     return vertices;
   }
-  if (vertices.length % 2 == 0) {
-    List<double> angles = [];
-    int nBy2 = vertices.length ~/ 2;
-    for (int i = 0; i < nBy2; i++) {
-      Offset p1 = vertices[i];
-      Offset p2 = vertices[i + nBy2];
-      double angleWithHorizontal = atan((p2.dy - p1.dy) / (p2.dx - p1.dx));
-      angles.add(angleWithHorizontal * 180 / pi);
-    }
-    print("angles: $angles");
-  }
-
   // Calculate the angle of each vertex for a regular polygon
   final double angleIncrement = 2 * pi / n;
   List<Offset> regularVertices = [];
@@ -667,7 +681,7 @@ List<Offset> finalPolygon(List<Offset> vertices) {
     ));
   }
 
-  return alignBaseWithHorizontal(regularVertices);
+  return alignPolygon(regularVertices);
 }
 
 //Perfecting the regular polygon
@@ -678,15 +692,14 @@ List<Offset> alignBaseWithHorizontal(List<Offset> vertices,
   List<Offset> bottomVertices = List<Offset>.from(vertices)
     ..sort((a, b) => b.dy.compareTo(a.dy));
   // Take the bottom two points which form the potential base.
+  
   Offset p1 = bottomVertices[0];
   Offset p2 = bottomVertices[1];
-
+  
   // Calculate the angle of the base with the horizontal axis.
   double angleWithHorizontal = atan2(p2.dy - p1.dy, p2.dx - p1.dx);
 
   double rotationAngle = -angleWithHorizontal;
-  print(rotationAngle);
-
   
 
   if (angleWithHorizontal.abs() > threshold) {
@@ -717,30 +730,109 @@ List<Offset> alignBaseWithHorizontal(List<Offset> vertices,
   return rotatedVertices;
 }
 
-//Polygon convex or not
-bool isConvexPolygon(List<Offset> vertices) {
-  if (vertices.length < 4) return true; // Triangles are always convex.
+List<Offset> alignPolygon(List<Offset> vertices) {
+  Offset centroid(List<Offset> vertices) {
+    double centerX = 0.0, centerY = 0.0;
+    for (var vertex in vertices) {
+      centerX += vertex.dx;
+      centerY += vertex.dy;
+    }
+    return Offset(centerX / vertices.length, centerY / vertices.length);
+  }
 
-  bool sign = false;
-  for (int i = 0; i < vertices.length; i++) {
-    Offset A = vertices[i];
-    Offset B = vertices[(i + 1) % vertices.length];
-    Offset C = vertices[(i + 2) % vertices.length];
+  double angleWithHorizontal(Offset a, Offset b) {
+    return atan2(b.dy - a.dy, b.dx - a.dx);
+  }
 
-    Offset AB = B - A;
-    Offset BC = C - B;
+  double determineRotationAngle(List<double> angles) {
+    double minHorizontalDistance = double.infinity;
+    double rotationAngleToHorizontal = 0.0;
 
-    double crossProductZ = AB.dx * BC.dy - AB.dy * BC.dx;
-    if (i == 0) {
-      // For the first time, save the sign of z of the cross product
-      sign = crossProductZ > 0;
+    // Find the smallest angle to align horizontally
+    for (var angle in angles) {
+      // Normalize the angle between -π to π
+      double normalizedAngle = angle.remainder(2 * pi);
+      if (normalizedAngle > pi) {
+        normalizedAngle -= 2 * pi;
+      } else if (normalizedAngle < -pi) {
+        normalizedAngle += 2 * pi;
+      }
+
+      final horizontalDistance =
+          min(normalizedAngle.abs(), (pi - normalizedAngle.abs()));
+      if (horizontalDistance < minHorizontalDistance) {
+        minHorizontalDistance = horizontalDistance;
+        rotationAngleToHorizontal = -normalizedAngle;
+      }
+    }
+
+    double minVerticalDistance = double.infinity;
+    double rotationAngleToVertical = 0.0;
+
+    // Find the smallest angle to align vertically
+    for (var angle in angles) {
+      // Normalize the angle between -π to π and then offset by -π/2 for vertical alignment
+      double normalizedAngle = (angle - pi / 2).remainder(2 * pi);
+      if (normalizedAngle > pi) {
+        normalizedAngle -= 2 * pi;
+      } else if (normalizedAngle < -pi) {
+        normalizedAngle += 2 * pi;
+      }
+
+      final verticalDistance =
+          min(normalizedAngle.abs(), (pi - normalizedAngle.abs()));
+      if (verticalDistance < minVerticalDistance) {
+        minVerticalDistance = verticalDistance;
+        rotationAngleToVertical = pi / 2 - angle;
+      }
+    }
+
+    // Compare which rotation angle is smaller and should be used
+    if (minHorizontalDistance <= minVerticalDistance) {
+      return rotationAngleToHorizontal;
     } else {
-      // If the sign changes, then polygon is concave.
-      if ((crossProductZ > 0) != sign) return false;
+      return rotationAngleToVertical;
     }
   }
 
-  return true; // No sign change found, polygon is convex.
+  List<Offset> rotatePolygon(
+      List<Offset> vertices, double angle, Offset center) {
+    return vertices.map((vertex) {
+      final dx = vertex.dx - center.dx;
+      final dy = vertex.dy - center.dy;
+      final newX = center.dx + dx * cos(angle) - dy * sin(angle);
+      final newY = center.dy + dx * sin(angle) + dy * cos(angle);
+      return Offset(newX, newY);
+    }).toList();
+  }
+
+  final int vertexCount = vertices.length;
+  final Offset center = centroid(vertices);
+  List<double> principalDiagonalAngles = [];
+
+  if (vertexCount.isEven) {
+    for (int i = 0; i < vertexCount / 2; i++) {
+      principalDiagonalAngles.add(angleWithHorizontal(
+          vertices[i], vertices[(i + vertexCount ~/ 2) % vertexCount]));
+    }
+  } else {
+    for (int i = 0; i < vertexCount; i++) {
+      final oppositeMidIndex = (i + vertexCount ~/ 2) % vertexCount;
+      final oppositeMidPoint = Offset(
+        (vertices[(oppositeMidIndex + 1) % vertexCount].dx +
+                vertices[oppositeMidIndex].dx) /
+            2,
+        (vertices[(oppositeMidIndex + 1) % vertexCount].dy +
+                vertices[oppositeMidIndex].dy) /
+            2,
+      );
+      principalDiagonalAngles
+          .add(angleWithHorizontal(vertices[i], oppositeMidPoint));
+    }
+  }
+
+  final rotationAngle = determineRotationAngle(principalDiagonalAngles);
+  return rotatePolygon(vertices, rotationAngle, center);
 }
 
 //Curve Handling
