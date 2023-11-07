@@ -23,60 +23,114 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  // A list of points representing the current stroke
   List<Offset> currentStroke = [];
   List<Offset> rdpPoints = [];
   List<int> rdpIndices = [];
   List<double> localAngles = [];
   Map<String, dynamic> shape = {};
+  bool showOriginalDrawing = true; // To toggle visibility
+  double strokeWidth = 5.0; // Default stroke width
+
+  Offset _getLocalPosition(Offset globalPosition) {
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    Offset localPosition = renderBox.globalToLocal(globalPosition);
+    // Adjust the localPosition by the AppBar height
+    localPosition = localPosition.translate(0, -AppBar().preferredSize.height);
+    return localPosition;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Drawing Shapes App'),
-        backgroundColor: Color.fromARGB(255, 52, 155, 158),
+        title: Text('Drawing App'),
       ),
-      body: Builder(
-        builder: (context) => GestureDetector(
-          onPanUpdate: (details) {
-            setState(() {
-              RenderBox renderBox = context.findRenderObject() as RenderBox;
-              Offset localPosition =
-                  renderBox.globalToLocal(details.globalPosition);
-              currentStroke.add(localPosition);
-            });
-          },
-          onPanDown: (details) {
-            // Clear the current stroke and start a new one
-            setState(() {
-              currentStroke.clear();
-              rdpPoints.clear();
-              rdpIndices.clear();
-              localAngles.clear();
-              shape.clear();
-              RenderBox renderBox = context.findRenderObject() as RenderBox;
-              Offset localPosition =
-                  renderBox.globalToLocal(details.globalPosition);
-              currentStroke.add(localPosition);
-            });
-          },
-          onPanEnd: (details) {
-            currentStroke = closure(currentStroke);
-            var result = rdpNRWithIndices(currentStroke, alpha: 0.05);
-
-            setState(() {
-              rdpPoints = result['points'] as List<Offset>;
-              rdpIndices = result['indices'] as List<int>;
-              localAngles = calculateLocalAngles(currentStroke, rdpIndices);
-              shape = shapeDecider(currentStroke, rdpPoints, localAngles);
-             
-            });
-          },
-          child: CustomPaint(
-            painter: MyPainter(currentStroke, rdpPoints, shape),
-            size: Size.infinite,
-          ),
+      body: SafeArea(
+        child: Column(
+          children: <Widget>[
+            Expanded(
+              child: GestureDetector(
+                onPanUpdate: (details) {
+                  setState(() {
+                    Offset localPosition =
+                        _getLocalPosition(details.globalPosition);
+                    currentStroke.add(localPosition);
+                  });
+                },
+                onPanDown: (details) {
+                  setState(() {
+                    currentStroke.clear();
+                    rdpPoints.clear();
+                    rdpIndices.clear();
+                    localAngles.clear();
+                    shape.clear();
+                    Offset localPosition =
+                        _getLocalPosition(details.globalPosition);
+                    currentStroke.add(localPosition);
+                  });
+                },
+                onPanEnd: (details) {
+                  setState(() {
+                    var result = rdpNRWithIndices(currentStroke, alpha: 0.05);
+                    rdpPoints = result['points'] as List<Offset>;
+                    rdpIndices = result['indices'] as List<int>;
+                    localAngles =
+                        calculateLocalAngles(currentStroke, rdpIndices);
+                    rdpPoints = closure(currentStroke, rdpPoints);
+                    shape = shapeDecider(currentStroke, rdpPoints, localAngles);
+                  });
+                },
+                child: CustomPaint(
+                  painter: MyPainter(
+                    showOriginalDrawing ? currentStroke : [],
+                    showOriginalDrawing ? rdpPoints : [],
+                    shape,
+                    strokeWidth,
+                    showOriginalDrawing,
+                  ),
+                  size: Size.infinite,
+                ),
+              ),
+            ),
+            // Slider and Checkbox
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: <Widget>[
+                  Expanded(
+                    child: Slider(
+                      value: strokeWidth,
+                      min: 1.0,
+                      max: 10.0,
+                      onChanged: (double value) {
+                        setState(() {
+                          strokeWidth = value;
+                        });
+                      },
+                    ),
+                  ),
+                  Checkbox(
+                    value: showOriginalDrawing,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        showOriginalDrawing = value ?? true;
+                      });
+                    },
+                  ),
+                  Text('Show Raw Drawing'),
+                ],
+              ),
+            ),
+            // Shape Type Display
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Text(
+                'Shape: ${shape['shape'] ?? 'NoShape'}',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -87,18 +141,23 @@ class MyPainter extends CustomPainter {
   final List<Offset> points;
   final List<Offset> rdpPoints;
   final Map<String, dynamic> shape;
+  final double strokeWidth;
+  final bool showOriginalDrawing;
 
-  MyPainter(this.points, this.rdpPoints, this.shape);
+  MyPainter(this.points, this.rdpPoints, this.shape, this.strokeWidth,
+      this.showOriginalDrawing);
 
   @override
   void paint(Canvas canvas, Size size) {
     Paint paint = Paint()
       ..color = Colors.black
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = 6.0;
+      ..strokeWidth = strokeWidth;
 
-    for (int i = 0; i < points.length - 1; i++) {
-      canvas.drawLine(points[i], points[i + 1], paint);
+    if (showOriginalDrawing || shape['shape'] == 'NoShape') {
+      for (int i = 0; i < points.length - 1; i++) {
+        canvas.drawLine(points[i], points[i + 1], paint);
+      }
     }
 
     Paint rdpPaint = Paint()
@@ -170,7 +229,6 @@ class MyPainter extends CustomPainter {
             vertices[i], vertices[(i + 1) % vertices.length], shapePaint);
       }
     } else if (shape['shape'] == 'Convex_Polygon') {
-
       List<Offset> polyVertices = finalPolygon(shape['points']);
       for (int i = 0; i < polyVertices.length; i++) {
         canvas.drawLine(polyVertices[i],
@@ -204,5 +262,3 @@ class MyPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
-
-
