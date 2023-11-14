@@ -195,8 +195,29 @@ Map<String, dynamic> shapeDecider(
   if (rdpPoints.length == 5) {
     if (isClosed) {
       List<Offset> quadVertices = rdpPoints.sublist(0, 4);
+      List<double> quad_angles = quadAngles(quadVertices);
+      for (int i = 0; i < localAngles.length; i++) {
+        if (localAngles[i] < 25 && quad_angles[i + 1] > 155) {
+          quadVertices.removeAt(i + 1);
+          return {
+            'shape': 'Triangle',
+            'subShape': classifyTriangle(triangleAngles(
+                quadVertices[0], quadVertices[1], quadVertices[2])),
+            'points': quadVertices
+          };
+        }
+      }
+
       if (isConvexPolygon2(quadVertices)) {
-        return {'shape': 'Quadrilateral', 'points': quadVertices};
+        Map<String, dynamic> verticesQuadType;
+        verticesQuadType = finalQuadrilateral(quadVertices);
+
+        String quadtype = verticesQuadType['quadType'] as String;
+        return {
+          'shape': 'Quadrilateral',
+          'subShape': quadtype,
+          'points': quadVertices
+        };
       }
       return {'shape': 'Concave_Polygon', 'points': rdpPoints};
     }
@@ -209,16 +230,28 @@ Map<String, dynamic> shapeDecider(
   if (rdpPoints.length == 6) {
     if (isClosed) {
       List<Offset> polyVertices = rdpPoints.sublist(0, rdpPoints.length - 1);
+      for (int i = 0; i < localAngles.length; i++) {
+        if (localAngles[i] < 20) {
+          polyVertices.removeAt(i + 1);
+          Map<String, dynamic> verticesQuadType;
+          verticesQuadType = finalQuadrilateral(polyVertices);
+
+          String quadtype = verticesQuadType['quadType'] as String;
+          return {
+            'shape': 'Quadrilateral',
+            'subShape': quadtype,
+            'points': polyVertices
+          };
+        }
+        ;
+      }
+
       if (isConvexPolygon2(polyVertices)) {
         return {'shape': 'Convex_Polygon', 'points': polyVertices};
       }
       return {'shape': 'Concave_Polygon', 'points': polyVertices};
     }
-    /*
-    if (isClosed && localAngles.any((angle) => angle < 15)) {
-      return {'shape': 'NoShape', 'points': rdpPoints};
-    }
-    */
+
     if (localAngles.every((angle) => angle < 30)) {
       return {'shape': 'Curve', 'points': rdpPoints};
     } else {
@@ -235,7 +268,8 @@ Map<String, dynamic> shapeDecider(
     }
 
     if (isClosed &&
-        ((localAngles.reduce((a, b) => a + b)) / localAngles.length < 30)||boxSize<200) {
+            ((localAngles.reduce((a, b) => a + b)) / localAngles.length < 30) ||
+        boxSize < 200) {
       Map<String, dynamic> circleResults = leastSquaresCircle(points);
       double h = circleResults['centerX'];
       double k = circleResults['centerY'];

@@ -76,6 +76,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     rdpIndices = result['indices'] as List<int>;
                     localAngles =
                         calculateLocalAngles(currentStroke, rdpIndices);
+                    
                     rdpPoints = closure(currentStroke, rdpPoints);
                     shape = shapeDecider(currentStroke, rdpPoints, localAngles);
                   });
@@ -220,8 +221,7 @@ class MyPainter extends CustomPainter {
       canvas.restore();
     } else if (shape['shape'] == 'Triangle') {
       List<Offset> vertices = finalTriangle(shape['points']);
-      shape['subShape'] = classifyTriangle(
-          triangleAngles(vertices[0], vertices[1], vertices[2]));
+
       for (int i = 0; i < 3; i++) {
         canvas.drawLine(vertices[i], vertices[(i + 1) % 3], shapePaint);
       }
@@ -229,8 +229,7 @@ class MyPainter extends CustomPainter {
       Map<String, dynamic> verticesQuadType;
       verticesQuadType = finalQuadrilateral(shape['points']);
       List<Offset> vertices = verticesQuadType['vertices'] as List<Offset>;
-      String quadtype = verticesQuadType['quadType'] as String;
-      shape['subShape'] = quadtype;
+
       for (int i = 0; i < 4; i++) {
         canvas.drawLine(vertices[i], vertices[(i + 1) % 4], shapePaint);
       }

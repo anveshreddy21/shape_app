@@ -1,7 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-
 Offset rotateScalePoint(
     Offset point, Offset pivot, double thetaDegrees, double scale) {
   // Convert angle to radians for Dart
@@ -278,12 +277,12 @@ List<Offset> finalTriangle(List<Offset> vertices) {
     case "Right-Angled Triangle":
       idealTriangle = idealRightTriangle(vertices, angleTriangle);
 
-      // print(triangleAngles(idealTriangle[0], idealTriangle[1], idealTriangle[2])); // Debug print
+      
       break;
     case "Isosceles Triangle":
       idealTriangle = idealIsoscelesTriangle(vertices, angleTriangle);
 
-      // print(triangleAngles(idealTriangle[0], idealTriangle[1], idealTriangle[2])); // Debug print
+     
       break;
     case "Scalene Triangle":
       idealTriangle = idealScaleneTriangle(vertices, angleTriangle);
@@ -608,7 +607,7 @@ Map<String, dynamic> finalQuadrilateral(List<Offset> vertices) {
       break;
   }
   List<Offset> newVertices = idealQuadrilateral(idealQuad, 8.0);
-  return {'vertices': newVertices , 'quadType': quad};
+  return {'vertices': newVertices, 'quadType': quad};
 }
 
 //Polygon convex or not
@@ -639,28 +638,26 @@ bool isConvexPolygon(List<Offset> vertices) {
 
 //Polygon ConvexOr not 2
 
-
 bool isConvexPolygon2(List<Offset> vertices) {
   bool doEdgesIntersect(Offset a, Offset b, Offset c, Offset d) {
-  // Calculate the direction of the segments AB and CD
-  double dir1 = (b.dx - a.dx) * (c.dy - a.dy) - (b.dy - a.dy) * (c.dx - a.dx);
-  double dir2 = (b.dx - a.dx) * (d.dy - a.dy) - (b.dy - a.dy) * (d.dx - a.dx);
-  double dir3 = (d.dx - c.dx) * (a.dy - c.dy) - (d.dy - c.dy) * (a.dx - c.dx);
-  double dir4 = (d.dx - c.dx) * (b.dy - c.dy) - (d.dy - c.dy) * (b.dx - c.dx);
+    // Calculate the direction of the segments AB and CD
+    double dir1 = (b.dx - a.dx) * (c.dy - a.dy) - (b.dy - a.dy) * (c.dx - a.dx);
+    double dir2 = (b.dx - a.dx) * (d.dy - a.dy) - (b.dy - a.dy) * (d.dx - a.dx);
+    double dir3 = (d.dx - c.dx) * (a.dy - c.dy) - (d.dy - c.dy) * (a.dx - c.dx);
+    double dir4 = (d.dx - c.dx) * (b.dy - c.dy) - (d.dy - c.dy) * (b.dx - c.dx);
 
-  // Check if segments AB and CD intersect
-  return dir1 * dir2 < 0 && dir3 * dir4 < 0;
+    // Check if segments AB and CD intersect
+    return dir1 * dir2 < 0 && dir3 * dir4 < 0;
   }
+
   if (vertices.length < 4) return true; // Triangles are always convex.
 
   // Check for self-intersection
   for (int i = 0; i < vertices.length; i++) {
     for (int j = i + 1; j < vertices.length; j++) {
-      if (i != j && doEdgesIntersect(
-        vertices[i],
-        vertices[(i + 1) % vertices.length],
-        vertices[j],
-        vertices[(j + 1) % vertices.length])) {
+      if (i != j &&
+          doEdgesIntersect(vertices[i], vertices[(i + 1) % vertices.length],
+              vertices[j], vertices[(j + 1) % vertices.length])) {
         return false; // Found intersecting edges
       }
     }
