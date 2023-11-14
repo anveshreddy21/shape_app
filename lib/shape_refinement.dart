@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
+
 Offset rotateScalePoint(
     Offset point, Offset pivot, double thetaDegrees, double scale) {
   // Convert angle to radians for Dart
@@ -383,6 +384,7 @@ String quadType(List<Offset> vertices, List<double> angles) {
       return "trapezium";
     }
   }
+
   return "irregular_quadrilateral";
 }
 
@@ -581,7 +583,7 @@ List<Offset> perfectTrapezium(List<Offset> vertices) {
 }
 
 //Final quadrilateral
-List<Offset> finalQuadrilateral(List<Offset> vertices) {
+Map<String, dynamic> finalQuadrilateral(List<Offset> vertices) {
   List<double> angles = quadAngles(vertices);
   String quad = quadType(vertices, angles);
   List<Offset> idealQuad;
@@ -605,7 +607,8 @@ List<Offset> finalQuadrilateral(List<Offset> vertices) {
       idealQuad = vertices;
       break;
   }
-  return idealQuadrilateral(idealQuad, 8.0);
+  List<Offset> newVertices = idealQuadrilateral(idealQuad, 8.0);
+  return {'vertices': newVertices , 'quadType': quad};
 }
 
 //Polygon convex or not
@@ -634,11 +637,61 @@ bool isConvexPolygon(List<Offset> vertices) {
   return true; // No sign change found, polygon is convex.
 }
 
+//Polygon ConvexOr not 2
+
+
+bool isConvexPolygon2(List<Offset> vertices) {
+  bool doEdgesIntersect(Offset a, Offset b, Offset c, Offset d) {
+  // Calculate the direction of the segments AB and CD
+  double dir1 = (b.dx - a.dx) * (c.dy - a.dy) - (b.dy - a.dy) * (c.dx - a.dx);
+  double dir2 = (b.dx - a.dx) * (d.dy - a.dy) - (b.dy - a.dy) * (d.dx - a.dx);
+  double dir3 = (d.dx - c.dx) * (a.dy - c.dy) - (d.dy - c.dy) * (a.dx - c.dx);
+  double dir4 = (d.dx - c.dx) * (b.dy - c.dy) - (d.dy - c.dy) * (b.dx - c.dx);
+
+  // Check if segments AB and CD intersect
+  return dir1 * dir2 < 0 && dir3 * dir4 < 0;
+  }
+  if (vertices.length < 4) return true; // Triangles are always convex.
+
+  // Check for self-intersection
+  for (int i = 0; i < vertices.length; i++) {
+    for (int j = i + 1; j < vertices.length; j++) {
+      if (i != j && doEdgesIntersect(
+        vertices[i],
+        vertices[(i + 1) % vertices.length],
+        vertices[j],
+        vertices[(j + 1) % vertices.length])) {
+        return false; // Found intersecting edges
+      }
+    }
+  }
+
+  // Convexity check using cross product
+  bool sign = false;
+  for (int i = 0; i < vertices.length; i++) {
+    Offset A = vertices[i];
+    Offset B = vertices[(i + 1) % vertices.length];
+    Offset C = vertices[(i + 2) % vertices.length];
+
+    Offset AB = B - A;
+    Offset BC = C - B;
+
+    double crossProductZ = AB.dx * BC.dy - AB.dy * BC.dx;
+    if (i == 0) {
+      sign = crossProductZ > 0;
+    } else {
+      if ((crossProductZ > 0) != sign) return false;
+    }
+  }
+
+  return true; // Polygon is convex and does not self-intersect
+}
+
 //Irregular to Regular polygon handling
 List<Offset> finalPolygon(List<Offset> vertices) {
   final int n = vertices.length; // Number of vertices
   if (n < 3) return vertices; // Not enough vertices to form a polygon
-  
+
   // Calculate the centroid of the polygon
   final centroid = vertices.fold<Offset>(
         Offset.zero,
@@ -780,7 +833,7 @@ List<Offset> alignPolygon(List<Offset> vertices) {
           .add(angleWithHorizontal(vertices[i], oppositeMidPoint));
     }
   }
-  
+
   final rotationAngle = determineRotationAngle(principalDiagonalAngles);
   return rotatePolygon(vertices, rotationAngle, center);
 }

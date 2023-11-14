@@ -179,7 +179,12 @@ Map<String, dynamic> shapeDecider(
   if (rdpPoints.length == 4) {
     if (isClosed) {
       List<Offset> triVertices = rdpPoints.sublist(0, 3);
-      return {'shape': 'Triangle', 'points': triVertices};
+      return {
+        'shape': 'Triangle',
+        'subShape': classifyTriangle(
+            triangleAngles(triVertices[0], triVertices[1], triVertices[2])),
+        'points': triVertices
+      };
     }
     if (localAngles.every((angle) => angle < 30)) {
       return {'shape': 'Curve', 'points': rdpPoints};
@@ -190,7 +195,7 @@ Map<String, dynamic> shapeDecider(
   if (rdpPoints.length == 5) {
     if (isClosed) {
       List<Offset> quadVertices = rdpPoints.sublist(0, 4);
-      if (isConvexPolygon(quadVertices)) {
+      if (isConvexPolygon2(quadVertices)) {
         return {'shape': 'Quadrilateral', 'points': quadVertices};
       }
       return {'shape': 'Concave_Polygon', 'points': rdpPoints};
@@ -204,7 +209,7 @@ Map<String, dynamic> shapeDecider(
   if (rdpPoints.length == 6) {
     if (isClosed) {
       List<Offset> polyVertices = rdpPoints.sublist(0, rdpPoints.length - 1);
-      if (isConvexPolygon(polyVertices)) {
+      if (isConvexPolygon2(polyVertices)) {
         return {'shape': 'Convex_Polygon', 'points': polyVertices};
       }
       return {'shape': 'Concave_Polygon', 'points': polyVertices};
@@ -221,21 +226,21 @@ Map<String, dynamic> shapeDecider(
     }
   }
 
-  if ([7, 8, 9, 10].contains(rdpPoints.length)) {
+  if ([7, 8, 9, 10, 11].contains(rdpPoints.length)) {
+    Map<String, dynamic> minMaxResults = minMaxMethod(points);
+    double boxSize = minMaxResults['boxDim'].dx + minMaxResults['boxDim'].dy;
+    double boxRatio = minMaxResults['boxDim'].dx / minMaxResults['boxDim'].dy;
+    if (boxRatio < 1) {
+      boxRatio = 1 / boxRatio;
+    }
+
     if (isClosed &&
-        (localAngles.reduce((a, b) => a + b)) / localAngles.length < 30) {
+        ((localAngles.reduce((a, b) => a + b)) / localAngles.length < 30)||boxSize<200) {
       Map<String, dynamic> circleResults = leastSquaresCircle(points);
       double h = circleResults['centerX'];
       double k = circleResults['centerY'];
       double r = circleResults['radius'];
       double err = circleResults['error'];
-
-      Map<String, dynamic> minMaxResults = minMaxMethod(points);
-
-      double boxRatio = minMaxResults['boxDim'].dx / minMaxResults['boxDim'].dy;
-      if (boxRatio < 1) {
-        boxRatio = 1 / boxRatio;
-      }
 
       double aByb = minMaxResults['a'] / minMaxResults['b'];
 
@@ -294,7 +299,7 @@ Map<String, dynamic> shapeDecider(
     }
     if (isClosed && localAngles.every((angle) => angle > 15)) {
       List<Offset> polyVertices = rdpPoints.sublist(0, rdpPoints.length - 1);
-      if (isConvexPolygon(polyVertices)) {
+      if (isConvexPolygon2(polyVertices)) {
         return {'shape': 'Convex_Polygon', 'points': polyVertices};
       }
       return {'shape': 'Concave_Polygon', 'points': polyVertices};
@@ -308,9 +313,9 @@ Map<String, dynamic> shapeDecider(
   }
 
   if (rdpPoints.length > 10) {
-    if (isClosed && localAngles.every((angle) => angle > 15)) {
+    if (isClosed && localAngles.every((angle) => angle > 20)) {
       List<Offset> polyVertices = rdpPoints.sublist(0, rdpPoints.length - 1);
-      if (isConvexPolygon(polyVertices)) {
+      if (isConvexPolygon2(polyVertices)) {
         return {'shape': 'Convex_Polygon', 'points': polyVertices};
       }
       return {'shape': 'Concave_Polygon', 'points': polyVertices};
