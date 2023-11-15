@@ -335,20 +335,9 @@ List<double> quadAngles(List<Offset> vertices) {
 
 //Quad type
 String quadType(List<Offset> vertices, List<double> angles) {
-  bool quadIsConvex(List<Offset> vertices) {
-    bool ccw(Offset A, Offset B, Offset C) {
-      return (C.dy - A.dy) * (B.dx - A.dx) > (B.dy - A.dy) * (C.dx - A.dx);
-    }
 
-    bool intersect(Offset A, Offset B, Offset C, Offset D) {
-      return ccw(A, C, D) != ccw(B, C, D) && ccw(A, B, C) != ccw(A, B, D);
-    }
-
-    return !intersect(vertices[0], vertices[1], vertices[2], vertices[3]);
-  }
-
-  if (!quadIsConvex(vertices)) {
-    return "concave_quadrilateral";
+  if (!isConvexPolygon2(vertices)) {
+    return "Concave Quadrilateral";
   }
 
   double distance(Offset p1, Offset p2) {
@@ -363,28 +352,28 @@ String quadType(List<Offset> vertices, List<double> angles) {
   bool angleCriteria = angles.every((angle) => (angle - 90).abs() <= 7);
 
   if (sideCriteria && angleCriteria) {
-    return "square";
+    return "Square";
   }
   if (sideCriteria) {
-    return "rhombus";
+    return "Rhombus";
   }
   if (angleCriteria) {
-    return "rectangle";
+    return "Rectangle";
   }
   if ((angles[0] - angles[2]).abs() <= 10 &&
       (angles[1] - angles[3]).abs() <= 10) {
-    return "parallelogram";
+    return "Parallelogram";
   }
   for (int i = 0; i < 4; i++) {
     if (175 <= angles[i] + angles[(i + 1) % 4] &&
         angles[i] + angles[(i + 1) % 4] <= 185 &&
         175 <= angles[(i + 2) % 4] + angles[(i + 3) % 4] &&
         angles[(i + 2) % 4] + angles[(i + 3) % 4] <= 185) {
-      return "trapezium";
+      return "Trapezium";
     }
   }
 
-  return "irregular_quadrilateral";
+  return "Irregular quadrilateral";
 }
 
 //Ideal Quadrilateral
@@ -587,19 +576,19 @@ Map<String, dynamic> finalQuadrilateral(List<Offset> vertices) {
   String quad = quadType(vertices, angles);
   List<Offset> idealQuad;
   switch (quad) {
-    case "square":
+    case "Square":
       idealQuad = perfectSquare(vertices);
       break;
-    case "rhombus":
+    case "Rhombus":
       idealQuad = perfectRhombus(vertices);
       break;
-    case "rectangle":
+    case "Rectangle":
       idealQuad = perfectRectangle(vertices);
       break;
-    case "parallelogram":
+    case "Parallelogram":
       idealQuad = perfectParallelogram(vertices);
       break;
-    case "trapezium":
+    case "Trapezium":
       idealQuad = perfectTrapezium(vertices);
       break;
     default:

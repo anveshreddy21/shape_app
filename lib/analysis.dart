@@ -219,7 +219,7 @@ Map<String, dynamic> shapeDecider(
           'points': quadVertices
         };
       }
-      return {'shape': 'Concave_Polygon', 'points': rdpPoints};
+      return {'shape': 'Concave Polygon', 'points': rdpPoints};
     }
     if (localAngles.every((angle) => angle < 30)) {
       return {'shape': 'Curve', 'points': rdpPoints};
@@ -247,9 +247,9 @@ Map<String, dynamic> shapeDecider(
       }
 
       if (isConvexPolygon2(polyVertices)) {
-        return {'shape': 'Convex_Polygon', 'points': polyVertices};
+        return {'shape': 'Convex Polygon', 'points': polyVertices};
       }
-      return {'shape': 'Concave_Polygon', 'points': polyVertices};
+      return {'shape': 'Concave Polygon', 'points': polyVertices};
     }
 
     if (localAngles.every((angle) => angle < 30)) {
@@ -308,7 +308,8 @@ Map<String, dynamic> shapeDecider(
       double angle = minMaxResults['tilt'];
       if (angle.abs() <= pi / 12) {
         return {
-          'shape': 'Horizontal_Ellipse',
+          'shape': 'Ellipse',
+          'subShape': 'Horizontal Ellipse',
           'points': rdpPoints,
           'center': Offset(h, k),
           'centerX': h,
@@ -319,7 +320,8 @@ Map<String, dynamic> shapeDecider(
         };
       } else {
         return {
-          'shape': 'Tilted_Ellipse',
+          'shape': 'Ellipse',
+          'subShape': 'Tilted Ellipse',
           'points': rdpPoints,
           'center': Offset(h, k),
           'centerX': h,
@@ -334,9 +336,9 @@ Map<String, dynamic> shapeDecider(
     if (isClosed && localAngles.every((angle) => angle > 15)) {
       List<Offset> polyVertices = rdpPoints.sublist(0, rdpPoints.length - 1);
       if (isConvexPolygon2(polyVertices)) {
-        return {'shape': 'Convex_Polygon', 'points': polyVertices};
+        return {'shape': 'Convex Polygon', 'points': polyVertices};
       }
-      return {'shape': 'Concave_Polygon', 'points': polyVertices};
+      return {'shape': 'Concave Polygon', 'points': polyVertices};
     }
 
     if ((localAngles.reduce((a, b) => a + b)) / localAngles.length < 25) {
@@ -350,9 +352,9 @@ Map<String, dynamic> shapeDecider(
     if (isClosed && localAngles.every((angle) => angle > 20)) {
       List<Offset> polyVertices = rdpPoints.sublist(0, rdpPoints.length - 1);
       if (isConvexPolygon2(polyVertices)) {
-        return {'shape': 'Convex_Polygon', 'points': polyVertices};
+        return {'shape': 'Convex Polygon', 'points': polyVertices};
       }
-      return {'shape': 'Concave_Polygon', 'points': polyVertices};
+      return {'shape': 'Concave Polygon', 'points': polyVertices};
     }
     if ((localAngles.reduce((a, b) => a + b)) / localAngles.length < 25) {
       return {'shape': 'Curve', 'points': rdpPoints};

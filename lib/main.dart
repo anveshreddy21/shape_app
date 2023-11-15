@@ -185,7 +185,7 @@ class MyPainter extends CustomPainter {
 
     if (shape['shape'] == 'Circle') {
       canvas.drawCircle(shape['center'], shape['radius'], shapePaint);
-    } else if (shape['shape'] == 'Horizontal_Ellipse') {
+    } else if (shape['subShape'] == 'Horizontal Ellipse') {
       double a = shape['a'];
       a = 2 * a;
       double b = shape['b'];
@@ -193,7 +193,7 @@ class MyPainter extends CustomPainter {
       canvas.drawOval(
           Rect.fromCenter(center: shape['center'], width: a, height: b),
           shapePaint);
-    } else if (shape['shape'] == 'Tilted_Ellipse') {
+    } else if (shape['subShape'] == 'Tilted Ellipse') {
       double a = shape['a']; // Semi-major axis
       double b = shape['b']; // Semi-minor axis
       Offset center = shape['center']; // Center of the ellipse
@@ -225,7 +225,7 @@ class MyPainter extends CustomPainter {
       for (int i = 0; i < 3; i++) {
         canvas.drawLine(vertices[i], vertices[(i + 1) % 3], shapePaint);
       }
-    } else if (shape['shape'] == 'Quadrilateral') {
+    } else if (shape['shape'] == 'Quadrilateral' && shape['subShape'] != 'Concave Quadrilateral')  {
       Map<String, dynamic> verticesQuadType;
       verticesQuadType = finalQuadrilateral(shape['points']);
       List<Offset> vertices = verticesQuadType['vertices'] as List<Offset>;
@@ -233,20 +233,20 @@ class MyPainter extends CustomPainter {
       for (int i = 0; i < 4; i++) {
         canvas.drawLine(vertices[i], vertices[(i + 1) % 4], shapePaint);
       }
-    } else if (shape['shape'] == 'PolyLine') {
+    } else if (shape['shape'] == 'PolyLine' || shape['subShape'] == 'Concave Quadrilateral' ) {
       List<Offset> vertices = shape['points'];
 
       for (int i = 0; i < vertices.length - 1; i++) {
         canvas.drawLine(
             vertices[i], vertices[(i + 1) % vertices.length], shapePaint);
       }
-    } else if (shape['shape'] == 'Convex_Polygon') {
+    } else if (shape['shape'] == 'Convex Polygon') {
       List<Offset> polyVertices = finalPolygon(shape['points']);
       for (int i = 0; i < polyVertices.length; i++) {
         canvas.drawLine(polyVertices[i],
             polyVertices[(i + 1) % polyVertices.length], shapePaint);
       }
-    } else if (shape['shape'] == 'Concave_Polygon') {
+    } else if (shape['shape'] == 'Concave Polygon') {
       List<Offset> vertices = shape['points'];
 
       for (int i = 0; i < vertices.length; i++) {
