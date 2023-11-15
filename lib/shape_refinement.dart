@@ -92,7 +92,7 @@ List<double> triangleAngles(Offset A, Offset B, Offset C) {
   double c = distance(A, B);
 
   double alpha = acos((b * b + c * c - a * a) / (2 * b * c));
-  double beta =  acos((a * a + c * c - b * b) / (2 * a * c));
+  double beta = acos((a * a + c * c - b * b) / (2 * a * c));
   double gamma = acos((a * a + b * b - c * c) / (2 * a * b));
 
   return [alpha, beta, gamma].map((rad) => rad * (180 / pi)).toList();
@@ -277,12 +277,12 @@ List<Offset> finalTriangle(List<Offset> vertices) {
     case "Right-Angled Triangle":
       idealTriangle = idealRightTriangle(vertices, angleTriangle);
 
-      // print(triangleAngles(idealTriangle[0], idealTriangle[1], idealTriangle[2])); // Debug print
+      
       break;
     case "Isosceles Triangle":
       idealTriangle = idealIsoscelesTriangle(vertices, angleTriangle);
 
-      // print(triangleAngles(idealTriangle[0], idealTriangle[1], idealTriangle[2])); // Debug print
+     
       break;
     case "Scalene Triangle":
       idealTriangle = idealScaleneTriangle(vertices, angleTriangle);
@@ -383,6 +383,7 @@ String quadType(List<Offset> vertices, List<double> angles) {
       return "trapezium";
     }
   }
+
   return "irregular_quadrilateral";
 }
 
@@ -509,8 +510,7 @@ List<Offset> perfectRectangle(List<Offset> vertices) {
   }
 
   // Find the longest distance from O
-  double OAPrime =
-      vertices.map((vertex) => distance(O, vertex)).reduce(max);
+  double OAPrime = vertices.map((vertex) => distance(O, vertex)).reduce(max);
 
   Offset APrime = rotateScalePoint(A, O, 0, OAPrime / distance(O, A));
 
@@ -582,7 +582,7 @@ List<Offset> perfectTrapezium(List<Offset> vertices) {
 }
 
 //Final quadrilateral
-List<Offset> finalQuadrilateral(List<Offset> vertices) {
+Map<String, dynamic> finalQuadrilateral(List<Offset> vertices) {
   List<double> angles = quadAngles(vertices);
   String quad = quadType(vertices, angles);
   List<Offset> idealQuad;
@@ -606,104 +606,9 @@ List<Offset> finalQuadrilateral(List<Offset> vertices) {
       idealQuad = vertices;
       break;
   }
-  return idealQuadrilateral(idealQuad, 8.0);
+  List<Offset> newVertices = idealQuadrilateral(idealQuad, 8.0);
+  return {'vertices': newVertices, 'quadType': quad};
 }
-
-//Irregular to Regular polygon handling
-List<Offset> finalPolygon(List<Offset> vertices) {
-  final int n = vertices.length; // Number of vertices
-  if (n < 3) return vertices; // Not enough vertices to form a polygon
-
-  // Calculate the centroid of the polygon
-  final centroid = vertices.fold<Offset>(
-        Offset.zero,
-        (prev, element) => prev + element,
-      ) /
-      n.toDouble();
-
-  // Calculate all side lengths
-  List<double> sideLengths = [];
-  for (int i = 0; i < n; i++) {
-    sideLengths.add((vertices[i] - vertices[(i + 1) % n]).distance);
-  }
-
-  // Determine if all sides are approximately equal
-  final double maxSide = sideLengths.reduce(max);
-  final double minSide = sideLengths.reduce(min);
-  const double toleranceRatio = 1.8; // Tolerance of 50%
-  if (maxSide / minSide > toleranceRatio) {
-    // Not a regular polygon, return the original vertices
-    return vertices;
-  }
-
-  // Calculate the angle of each vertex for a regular polygon
-  final double angleIncrement = 2 * pi / n;
-  List<Offset> regularVertices = [];
-
-  // Align first vertex with positive x-axis
-  double startAngle = atan2(
-    vertices.first.dy - centroid.dy,
-    vertices.first.dx - centroid.dx,
-  );
-
-  // Generate the vertices of a regular polygon
-  for (int i = 0; i < n; i++) {
-    double angle = startAngle + angleIncrement * i;
-    regularVertices.add(Offset(
-      centroid.dx + (0.5*maxSide+0.5*minSide) * cos(angle),
-      centroid.dy + (0.5*maxSide+0.5*minSide) * sin(angle),
-    ));
-  }
-
-  return alignBaseWithHorizontal(regularVertices);
-}
-
-
-//Perfecting the regular polygon
-
-List<Offset> alignBaseWithHorizontal(List<Offset> vertices, {double threshold = 0.25}) {
-  // Sort the vertices based on the 'y' value to get the bottom ones.
-  List<Offset> bottomVertices = List<Offset>.from(vertices)..sort((a, b) => b.dy.compareTo(a.dy));
-  
-  // Take the bottom two points which form the potential base.
-  Offset p1 = bottomVertices[0];
-  Offset p2 = bottomVertices[1];
-  
-  // Calculate the angle of the base with the horizontal axis.
-  double angleWithHorizontal = atan2(p2.dy - p1.dy, p2.dx - p1.dx);
-  
-
-  double rotationAngle = -angleWithHorizontal;
-
-
-  if(angleWithHorizontal.abs() > threshold) {
-    // The base is already aligned with the horizontal axis.
-    return vertices;
-  }
-  
-  // Calculate the angle needed to rotate the base to align with the horizontal axis.
-  
-
-  // Find the centroid of the polygon to use as the pivot for rotation.
-  Offset centroid = vertices.fold(
-    Offset.zero,
-    (Offset sum, Offset v) => sum + v,
-  ) / vertices.length.toDouble();
-
-  // Rotate all vertices around the centroid by the calculated angle.
-  List<Offset> rotatedVertices = vertices.map((vertex) {
-    double dx = vertex.dx - centroid.dx;
-    double dy = vertex.dy - centroid.dy;
-
-    return Offset(
-      centroid.dx + dx * cos(rotationAngle) - dy * sin(rotationAngle),
-      centroid.dy + dx * sin(rotationAngle) + dy * cos(rotationAngle),
-    );
-  }).toList();
-
-  return rotatedVertices;
-}
-
 
 //Polygon convex or not
 bool isConvexPolygon(List<Offset> vertices) {
@@ -727,10 +632,258 @@ bool isConvexPolygon(List<Offset> vertices) {
       if ((crossProductZ > 0) != sign) return false;
     }
   }
- 
+
   return true; // No sign change found, polygon is convex.
 }
 
+//Polygon ConvexOr not 2
+
+bool isConvexPolygon2(List<Offset> vertices) {
+  bool doEdgesIntersect(Offset a, Offset b, Offset c, Offset d) {
+    // Calculate the direction of the segments AB and CD
+    double dir1 = (b.dx - a.dx) * (c.dy - a.dy) - (b.dy - a.dy) * (c.dx - a.dx);
+    double dir2 = (b.dx - a.dx) * (d.dy - a.dy) - (b.dy - a.dy) * (d.dx - a.dx);
+    double dir3 = (d.dx - c.dx) * (a.dy - c.dy) - (d.dy - c.dy) * (a.dx - c.dx);
+    double dir4 = (d.dx - c.dx) * (b.dy - c.dy) - (d.dy - c.dy) * (b.dx - c.dx);
+
+    // Check if segments AB and CD intersect
+    return dir1 * dir2 < 0 && dir3 * dir4 < 0;
+  }
+
+  if (vertices.length < 4) return true; // Triangles are always convex.
+
+  // Check for self-intersection
+  for (int i = 0; i < vertices.length; i++) {
+    for (int j = i + 1; j < vertices.length; j++) {
+      if (i != j &&
+          doEdgesIntersect(vertices[i], vertices[(i + 1) % vertices.length],
+              vertices[j], vertices[(j + 1) % vertices.length])) {
+        return false; // Found intersecting edges
+      }
+    }
+  }
+
+  // Convexity check using cross product
+  bool sign = false;
+  for (int i = 0; i < vertices.length; i++) {
+    Offset A = vertices[i];
+    Offset B = vertices[(i + 1) % vertices.length];
+    Offset C = vertices[(i + 2) % vertices.length];
+
+    Offset AB = B - A;
+    Offset BC = C - B;
+
+    double crossProductZ = AB.dx * BC.dy - AB.dy * BC.dx;
+    if (i == 0) {
+      sign = crossProductZ > 0;
+    } else {
+      if ((crossProductZ > 0) != sign) return false;
+    }
+  }
+
+  return true; // Polygon is convex and does not self-intersect
+}
+
+//Irregular to Regular polygon handling
+List<Offset> finalPolygon(List<Offset> vertices) {
+  final int n = vertices.length; // Number of vertices
+  if (n < 3) return vertices; // Not enough vertices to form a polygon
+
+  // Calculate the centroid of the polygon
+  final centroid = vertices.fold<Offset>(
+        Offset.zero,
+        (prev, element) => prev + element,
+      ) /
+      n.toDouble();
+
+  // Calculate all side lengths
+  List<double> sideLengths = [];
+  for (int i = 0; i < n; i++) {
+    sideLengths.add((vertices[i] - vertices[(i + 1) % n]).distance);
+  }
+
+  // Determine if all sides are approximately equal
+  final double maxSide = sideLengths.reduce(max);
+  final double minSide = sideLengths.reduce(min);
+  const double toleranceRatio = 1.8; // Tolerance of 80%
+  if (maxSide / minSide > toleranceRatio) {
+    // Not a regular polygon, return the original vertices
+    return vertices;
+  }
+  // Calculate the angle of each vertex for a regular polygon
+  final double angleIncrement = 2 * pi / n;
+  List<Offset> regularVertices = [];
+
+  // Align first vertex with positive x-axis
+  double startAngle = atan2(
+    vertices.first.dy - centroid.dy,
+    vertices.first.dx - centroid.dx,
+  );
+  double d = 0.5 * maxSide + 0.5 * minSide;
+  double r = d / (2 * sin(pi / n));
+
+  // Generate the vertices of a regular polygon
+  for (int i = 0; i < n; i++) {
+    double angle = startAngle + angleIncrement * i;
+    regularVertices.add(Offset(
+      centroid.dx + r * cos(angle),
+      centroid.dy + r * sin(angle),
+    ));
+  }
+
+  return alignPolygon(regularVertices);
+}
+
+List<Offset> alignPolygon(List<Offset> vertices) {
+  Offset centroid(List<Offset> vertices) {
+    double centerX = 0.0, centerY = 0.0;
+    for (var vertex in vertices) {
+      centerX += vertex.dx;
+      centerY += vertex.dy;
+    }
+    return Offset(centerX / vertices.length, centerY / vertices.length);
+  }
+
+  double angleWithHorizontal(Offset a, Offset b) {
+    return atan2(b.dy - a.dy, b.dx - a.dx);
+  }
+
+  double determineRotationAngle(List<double> angles) {
+    double minDistance = double.infinity;
+    double rotationAngle = 0.0;
+
+    for (var angle in angles) {
+      // Normalize the angle between -π to π
+      double normalizedAngle = angle.remainder(2 * pi);
+      if (normalizedAngle > pi) {
+        normalizedAngle -= 2 * pi;
+      } else if (normalizedAngle < -pi) {
+        normalizedAngle += 2 * pi;
+      }
+
+      // Check distance to horizontal axis (0 or π)
+      double distanceToHorizontal =
+          min(normalizedAngle.abs(), (normalizedAngle - pi).abs());
+
+      // Check distance to vertical axis (-π/2 or π/2)
+      double distanceToVertical = min(
+          (normalizedAngle - pi / 2).abs(), (normalizedAngle + pi / 2).abs());
+
+      // Determine if the current angle is closer to the horizontal or vertical axis
+      double currentMinDistance, currentRotationAngle;
+      if (distanceToHorizontal <= distanceToVertical) {
+        currentMinDistance = distanceToHorizontal;
+        currentRotationAngle = (normalizedAngle.abs() <= pi / 2)
+            ? -normalizedAngle
+            : (normalizedAngle > 0)
+                ? pi - normalizedAngle
+                : -pi - normalizedAngle;
+      } else {
+        currentMinDistance = distanceToVertical;
+        currentRotationAngle = (normalizedAngle > 0)
+            ? pi / 2 - normalizedAngle
+            : -pi / 2 - normalizedAngle;
+      }
+
+      // Check if the current angle provides a closer alignment than what we have so far
+      if (currentMinDistance < minDistance) {
+        minDistance = currentMinDistance;
+        rotationAngle = currentRotationAngle;
+      }
+    }
+
+    return rotationAngle;
+  }
+
+  List<Offset> rotatePolygon(
+      List<Offset> vertices, double angle, Offset center) {
+    return vertices.map((vertex) {
+      final dx = vertex.dx - center.dx;
+      final dy = vertex.dy - center.dy;
+      final newX = center.dx + dx * cos(angle) - dy * sin(angle);
+      final newY = center.dy + dx * sin(angle) + dy * cos(angle);
+      return Offset(newX, newY);
+    }).toList();
+  }
+
+  final int vertexCount = vertices.length;
+  final Offset center = centroid(vertices);
+  List<double> principalDiagonalAngles = [];
+
+  if (vertexCount.isEven) {
+    for (int i = 0; i < vertexCount / 2; i++) {
+      principalDiagonalAngles.add(angleWithHorizontal(
+          vertices[i], vertices[(i + vertexCount ~/ 2) % vertexCount]));
+    }
+  } else {
+    for (int i = 0; i < vertexCount; i++) {
+      final oppositeMidIndex = (i + vertexCount ~/ 2) % vertexCount;
+      final oppositeMidPoint = Offset(
+        (vertices[(oppositeMidIndex + 1) % vertexCount].dx +
+                vertices[oppositeMidIndex].dx) /
+            2,
+        (vertices[(oppositeMidIndex + 1) % vertexCount].dy +
+                vertices[oppositeMidIndex].dy) /
+            2,
+      );
+      principalDiagonalAngles
+          .add(angleWithHorizontal(vertices[i], oppositeMidPoint));
+    }
+  }
+
+  final rotationAngle = determineRotationAngle(principalDiagonalAngles);
+  return rotatePolygon(vertices, rotationAngle, center);
+}
+
+/*
+//Not using this right now
+//Perfecting the regular polygon
+
+List<Offset> alignBaseWithHorizontal(List<Offset> vertices,
+    {double threshold = 0.28}) {
+  // Sort the vertices based on the 'y' value to get the bottom ones.
+  List<Offset> bottomVertices = List<Offset>.from(vertices)
+    ..sort((a, b) => b.dy.compareTo(a.dy));
+  // Take the bottom two points which form the potential base.
+  
+  Offset p1 = bottomVertices[0];
+  Offset p2 = bottomVertices[1];
+  
+  // Calculate the angle of the base with the horizontal axis.
+  double angleWithHorizontal = atan2(p2.dy - p1.dy, p2.dx - p1.dx);
+
+  double rotationAngle = -angleWithHorizontal;
+  
+
+  if (angleWithHorizontal.abs() > threshold) {
+    // The base is already aligned with the horizontal axis.
+    return vertices;
+  }
+
+  // Calculate the angle needed to rotate the base to align with the horizontal axis.
+
+  // Find the centroid of the polygon to use as the pivot for rotation.
+  Offset centroid = vertices.fold(
+        Offset.zero,
+        (Offset sum, Offset v) => sum + v,
+      ) /
+      vertices.length.toDouble();
+
+  // Rotate all vertices around the centroid by the calculated angle.
+  List<Offset> rotatedVertices = vertices.map((vertex) {
+    double dx = vertex.dx - centroid.dx;
+    double dy = vertex.dy - centroid.dy;
+
+    return Offset(
+      centroid.dx + dx * cos(rotationAngle) - dy * sin(rotationAngle),
+      centroid.dy + dx * sin(rotationAngle) + dy * cos(rotationAngle),
+    );
+  }).toList();
+
+  return rotatedVertices;
+}
+
+*/
 
 //Curve Handling
 

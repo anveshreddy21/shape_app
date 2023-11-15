@@ -9,9 +9,10 @@ Map<String, dynamic> rdpNRWithIndices(List<Offset> points,
     double maxX = points.reduce((p1, p2) => p1.dx > p2.dx ? p1 : p2).dx;
     double minY = points.reduce((p1, p2) => p1.dy < p2.dy ? p1 : p2).dy;
     double maxY = points.reduce((p1, p2) => p1.dy > p2.dy ? p1 : p2).dy;
+    double size = 0;
 
-    return alpha *
-        sqrt((maxX - minX) * (maxX - minX) + (maxY - minY) * (maxY - minY));
+    size = sqrt((maxX - minX) * (maxX - minX) + (maxY - minY) * (maxY - minY));
+    return alpha * size;
   }
 
   double pointToLineDistance(Offset p, Offset a, Offset b) {
@@ -70,7 +71,7 @@ Map<String, dynamic> rdpNRWithIndices(List<Offset> points,
 
 //Closure of figure
 
-List<Offset> closure(List<Offset> points) {
+List<Offset> closure(List<Offset> points, List<Offset> rdpPoints) {
   double calculateThresholdBasedOnSize(List<Offset> points,
       {double alpha = 0.1}) {
     double minX = points.reduce((p1, p2) => p1.dx < p2.dx ? p1 : p2).dx;
@@ -91,12 +92,12 @@ List<Offset> closure(List<Offset> points) {
       (firstPoint.dx - lastPoint.dx) * (firstPoint.dx - lastPoint.dx) +
           (firstPoint.dy - lastPoint.dy) * (firstPoint.dy - lastPoint.dy));
 
-  if (distance < calculateThresholdBasedOnSize(points, alpha: 0.15)) {
-    points[points.length - 1] = firstPoint;
-    return points;
+  if (distance < calculateThresholdBasedOnSize(points, alpha: 0.125)) {
+    rdpPoints.last = rdpPoints.first;
+    return rdpPoints;
   }
 
-  return points;
+  return rdpPoints;
 }
 
 //Local angle calculation
@@ -178,7 +179,12 @@ Map<String, dynamic> shapeDecider(
   if (rdpPoints.length == 4) {
     if (isClosed) {
       List<Offset> triVertices = rdpPoints.sublist(0, 3);
-      return {'shape': 'Triangle', 'points': triVertices};
+      return {
+        'shape': 'Triangle',
+        'subShape': classifyTriangle(
+            triangleAngles(triVertices[0], triVertices[1], triVertices[2])),
+        'points': triVertices
+      };
     }
     if (localAngles.every((angle) => angle < 30)) {
       return {'shape': 'Curve', 'points': rdpPoints};
@@ -187,15 +193,33 @@ Map<String, dynamic> shapeDecider(
     }
   }
   if (rdpPoints.length == 5) {
-    if (isClosed && localAngles.every((angle) => angle > 15)) {
+    if (isClosed) {
       List<Offset> quadVertices = rdpPoints.sublist(0, 4);
-      if (isConvexPolygon(quadVertices)) {
-        return {'shape': 'Quadrilateral', 'points': quadVertices};
+      List<double> quad_angles = quadAngles(quadVertices);
+      for (int i = 0; i < localAngles.length; i++) {
+        if (localAngles[i] < 25 && quad_angles[i + 1] > 155) {
+          quadVertices.removeAt(i + 1);
+          return {
+            'shape': 'Triangle',
+            'subShape': classifyTriangle(triangleAngles(
+                quadVertices[0], quadVertices[1], quadVertices[2])),
+            'points': quadVertices
+          };
+        }
+      }
+
+      if (isConvexPolygon2(quadVertices)) {
+        Map<String, dynamic> verticesQuadType;
+        verticesQuadType = finalQuadrilateral(quadVertices);
+
+        String quadtype = verticesQuadType['quadType'] as String;
+        return {
+          'shape': 'Quadrilateral',
+          'subShape': quadtype,
+          'points': quadVertices
+        };
       }
       return {'shape': 'Concave_Polygon', 'points': rdpPoints};
-    }
-    if (isClosed && localAngles.any((angle) => angle < 15)) {
-      return {'shape': 'NoShape', 'points': rdpPoints};
     }
     if (localAngles.every((angle) => angle < 30)) {
       return {'shape': 'Curve', 'points': rdpPoints};
@@ -204,16 +228,30 @@ Map<String, dynamic> shapeDecider(
     }
   }
   if (rdpPoints.length == 6) {
-    if (isClosed && localAngles.every((angle) => angle > 15)) {
+    if (isClosed) {
       List<Offset> polyVertices = rdpPoints.sublist(0, rdpPoints.length - 1);
-      if (isConvexPolygon(polyVertices)) {
+      for (int i = 0; i < localAngles.length; i++) {
+        if (localAngles[i] < 20) {
+          polyVertices.removeAt(i + 1);
+          Map<String, dynamic> verticesQuadType;
+          verticesQuadType = finalQuadrilateral(polyVertices);
+
+          String quadtype = verticesQuadType['quadType'] as String;
+          return {
+            'shape': 'Quadrilateral',
+            'subShape': quadtype,
+            'points': polyVertices
+          };
+        }
+        ;
+      }
+
+      if (isConvexPolygon2(polyVertices)) {
         return {'shape': 'Convex_Polygon', 'points': polyVertices};
       }
       return {'shape': 'Concave_Polygon', 'points': polyVertices};
     }
-    if (isClosed && localAngles.any((angle) => angle < 15)) {
-      return {'shape': 'NoShape', 'points': rdpPoints};
-    }
+
     if (localAngles.every((angle) => angle < 30)) {
       return {'shape': 'Curve', 'points': rdpPoints};
     } else {
@@ -221,21 +259,22 @@ Map<String, dynamic> shapeDecider(
     }
   }
 
-  if ([7, 8, 9, 10].contains(rdpPoints.length)) {
+  if ([7, 8, 9, 10, 11].contains(rdpPoints.length)) {
+    Map<String, dynamic> minMaxResults = minMaxMethod(points);
+    double boxSize = minMaxResults['boxDim'].dx + minMaxResults['boxDim'].dy;
+    double boxRatio = minMaxResults['boxDim'].dx / minMaxResults['boxDim'].dy;
+    if (boxRatio < 1) {
+      boxRatio = 1 / boxRatio;
+    }
+
     if (isClosed &&
-        (localAngles.reduce((a, b) => a + b)) / localAngles.length < 30) {
+            ((localAngles.reduce((a, b) => a + b)) / localAngles.length < 30) ||
+        boxSize < 200) {
       Map<String, dynamic> circleResults = leastSquaresCircle(points);
       double h = circleResults['centerX'];
       double k = circleResults['centerY'];
       double r = circleResults['radius'];
       double err = circleResults['error'];
-
-      Map<String, dynamic> minMaxResults = minMaxMethod(points);
-
-      double boxRatio = minMaxResults['boxDim'].dx / minMaxResults['boxDim'].dy;
-      if (boxRatio < 1) {
-        boxRatio = 1 / boxRatio;
-      }
 
       double aByb = minMaxResults['a'] / minMaxResults['b'];
 
@@ -294,7 +333,7 @@ Map<String, dynamic> shapeDecider(
     }
     if (isClosed && localAngles.every((angle) => angle > 15)) {
       List<Offset> polyVertices = rdpPoints.sublist(0, rdpPoints.length - 1);
-      if (isConvexPolygon(polyVertices)) {
+      if (isConvexPolygon2(polyVertices)) {
         return {'shape': 'Convex_Polygon', 'points': polyVertices};
       }
       return {'shape': 'Concave_Polygon', 'points': polyVertices};
@@ -308,9 +347,9 @@ Map<String, dynamic> shapeDecider(
   }
 
   if (rdpPoints.length > 10) {
-    if (isClosed && localAngles.every((angle) => angle > 15)) {
+    if (isClosed && localAngles.every((angle) => angle > 20)) {
       List<Offset> polyVertices = rdpPoints.sublist(0, rdpPoints.length - 1);
-      if (isConvexPolygon(polyVertices)) {
+      if (isConvexPolygon2(polyVertices)) {
         return {'shape': 'Convex_Polygon', 'points': polyVertices};
       }
       return {'shape': 'Concave_Polygon', 'points': polyVertices};
