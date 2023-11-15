@@ -127,7 +127,7 @@ class _MyHomePageState extends State<MyHomePage> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Text(
-                'Shape: ${shape['shape'] ?? 'NoShape'}',
+                'Shape: ${shape['shape'] ?? ''}',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
