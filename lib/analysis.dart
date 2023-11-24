@@ -344,7 +344,7 @@ Map<String, dynamic> shapeDecider(
           'listPoints': listPoints
         };
       } else {
-        print(angle);
+       
         List<Offset> listPoints = [];
         double a = minMaxResults['a'];
         double b = minMaxResults['b'];
