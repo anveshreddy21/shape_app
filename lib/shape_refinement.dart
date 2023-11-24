@@ -825,7 +825,7 @@ List<Offset> alignPolygon(List<Offset> vertices) {
 }
 
 /*
-//Not using this right now
+//Not using this right now, may use in future
 //Perfecting the regular polygon
 
 List<Offset> alignBaseWithHorizontal(List<Offset> vertices,
@@ -872,30 +872,15 @@ List<Offset> alignBaseWithHorizontal(List<Offset> vertices,
   return rotatedVertices;
 }
 
-*/
 
-//Curve Handling
+List<Offset> catRom2(List<Offset> controlPoints) {
+  List<Offset> listPoints = [];
 
-Offset cmr(Offset p0, Offset p1, Offset p2, Offset p3, double t) {
-  double t2 = t * t;
-  double t3 = t2 * t;
-  List<double> a1 = [];
-  List<double> a2 = [];
-  List<double> a3 = [];
-  List<double> a4 = [];
-
-  a1.add(-0.5 * p0.dx + 1.5 * p1.dx - 1.5 * p2.dx + 0.5 * p3.dx);
-  a2.add(p0.dx - 2.5 * p1.dx + 2 * p2.dx - 0.5 * p3.dx);
-  a3.add(-0.5 * p0.dx + 0.5 * p2.dx);
-  a4.add(p1.dx);
-
-  a1.add(-0.5 * p0.dy + 1.5 * p1.dy - 1.5 * p2.dy + 0.5 * p3.dy);
-  a2.add(p0.dy - 2.5 * p1.dy + 2 * p2.dy - 0.5 * p3.dy);
-  a3.add(-0.5 * p0.dy + 0.5 * p2.dy);
-  a4.add(p1.dy);
-
-  double x = a1[0] * t3 + a2[0] * t2 + a3[0] * t + a4[0];
-  double y = a1[1] * t3 + a2[1] * t2 + a3[1] * t + a4[1];
-
-  return Offset(x, y);
+  final spline = CatmullRomSpline(controlPoints, tension: 0);
+  for (double t = 0.0; t < 1.0; t += 0.01) {
+    listPoints.add(spline.transform(t));
+  }
+  return listPoints;
 }
+
+*/

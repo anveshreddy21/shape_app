@@ -73,7 +73,7 @@ Map<String, dynamic> rdpNRWithIndices(List<Offset> points,
 
 List<Offset> closure(List<Offset> points, List<Offset> rdpPoints) {
   double calculateThresholdBasedOnSize(List<Offset> points,
-      {double alpha = 0.1}) {
+      {double alpha = 0.15}) {
     double minX = points.reduce((p1, p2) => p1.dx < p2.dx ? p1 : p2).dx;
     double maxX = points.reduce((p1, p2) => p1.dx > p2.dx ? p1 : p2).dx;
     double minY = points.reduce((p1, p2) => p1.dy < p2.dy ? p1 : p2).dy;
@@ -92,7 +92,7 @@ List<Offset> closure(List<Offset> points, List<Offset> rdpPoints) {
       (firstPoint.dx - lastPoint.dx) * (firstPoint.dx - lastPoint.dx) +
           (firstPoint.dy - lastPoint.dy) * (firstPoint.dy - lastPoint.dy));
 
-  if (distance < calculateThresholdBasedOnSize(points, alpha: 0.125)) {
+  if (distance < calculateThresholdBasedOnSize(points, alpha: 0.15)) {
     rdpPoints.last = rdpPoints.first;
     return rdpPoints;
   }
@@ -103,9 +103,9 @@ List<Offset> closure(List<Offset> points, List<Offset> rdpPoints) {
 //Local angle calculation
 
 List<double> calculateLocalAngles(List<Offset> points, List<int> indices) {
-  // Check if the list of indices is too short to process
+  
   if (indices.length <= 1) {
-    return []; // Return an empty list
+    return []; 
   }
 
   Offset getVector(Offset p1, Offset p2) {
@@ -187,7 +187,7 @@ Map<String, dynamic> shapeDecider(
       };
     }
     if (localAngles.every((angle) => angle < 30)) {
-      List<Offset> listPoints = catRom(rdpPoints);
+      List<Offset> listPoints = catRomSpline(rdpPoints);
       return {'shape': 'Curve', 'points': rdpPoints, 'listPoints': listPoints};
     } else {
       return {'shape': 'PolyLine', 'points': rdpPoints};
@@ -223,7 +223,7 @@ Map<String, dynamic> shapeDecider(
       return {'shape': 'Concave Polygon', 'points': rdpPoints};
     }
     if (localAngles.every((angle) => angle < 30)) {
-      List<Offset> listPoints = catRom(rdpPoints);
+      List<Offset> listPoints = catRomSpline(rdpPoints);
       return {'shape': 'Curve', 'points': rdpPoints, 'listPoints': listPoints};
     } else {
       return {'shape': 'PolyLine', 'points': rdpPoints};
@@ -255,7 +255,7 @@ Map<String, dynamic> shapeDecider(
     }
 
     if (localAngles.every((angle) => angle < 30)) {
-      List<Offset> listPoints = catRom(rdpPoints);
+      List<Offset> listPoints = catRomSpline(rdpPoints);
       return {'shape': 'Curve', 'points': rdpPoints, 'listPoints': listPoints};
     } else {
       return {'shape': 'PolyLine', 'points': rdpPoints};
@@ -346,7 +346,7 @@ Map<String, dynamic> shapeDecider(
           'error': err,
           'listPoints': listPoints
         };
-      } else {
+      } else if(isClosed) {
         List<Offset> listPoints = [];
         double a = minMaxResults['a'];
         double b = minMaxResults['b'];
@@ -384,7 +384,7 @@ Map<String, dynamic> shapeDecider(
     }
 
     if ((localAngles.reduce((a, b) => a + b)) / localAngles.length < 25) {
-      List<Offset> listPoints = catRom(rdpPoints);
+      List<Offset> listPoints = catRomSpline(rdpPoints);
       return {'shape': 'Curve', 'points': rdpPoints, 'listPoints': listPoints};
     } else {
       return {'shape': 'PolyLine', 'points': rdpPoints};
@@ -400,7 +400,7 @@ Map<String, dynamic> shapeDecider(
       return {'shape': 'Concave Polygon', 'points': polyVertices};
     }
     if ((localAngles.reduce((a, b) => a + b)) / localAngles.length < 25) {
-      List<Offset> listPoints = catRom(rdpPoints);
+      List<Offset> listPoints = catRomSpline(rdpPoints);
       return {'shape': 'Curve', 'points': rdpPoints, 'listPoints': listPoints};
     } else {
       return {'shape': 'PolyLine', 'points': rdpPoints};
@@ -409,8 +409,6 @@ Map<String, dynamic> shapeDecider(
     return {'shape': 'NoShape', 'points': rdpPoints};
   }
 }
-
-
 
 //Circle handling
 Map<String, dynamic> leastSquaresCircle(List<Offset> points) {
@@ -550,13 +548,42 @@ Map<String, dynamic> minMaxMethod(List<Offset> points) {
 }
 
 
-//Curve
-List<Offset> catRom(List<Offset> controlPoints) {
-  List<Offset> listPoints = [];
+//Curve Handling
 
-  final spline = CatmullRomSpline(controlPoints, tension: 0);
-  for (double t = 0.0; t < 1.0; t += 0.01) {
-    listPoints.add(spline.transform(t));
+Offset cmr(Offset p0, Offset p1, Offset p2, Offset p3, double t) {
+  double t2 = t * t;
+  double t3 = t2 * t;
+  List<double> a1 = [];
+  List<double> a2 = [];
+  List<double> a3 = [];
+  List<double> a4 = [];
+
+  a1.add(-0.5 * p0.dx + 1.5 * p1.dx - 1.5 * p2.dx + 0.5 * p3.dx);
+  a2.add(p0.dx - 2.5 * p1.dx + 2 * p2.dx - 0.5 * p3.dx);
+  a3.add(-0.5 * p0.dx + 0.5 * p2.dx);
+  a4.add(p1.dx);
+
+  a1.add(-0.5 * p0.dy + 1.5 * p1.dy - 1.5 * p2.dy + 0.5 * p3.dy);
+  a2.add(p0.dy - 2.5 * p1.dy + 2 * p2.dy - 0.5 * p3.dy);
+  a3.add(-0.5 * p0.dy + 0.5 * p2.dy);
+  a4.add(p1.dy);
+
+  double x = a1[0] * t3 + a2[0] * t2 + a3[0] * t + a4[0];
+  double y = a1[1] * t3 + a2[1] * t2 + a3[1] * t + a4[1];
+
+  return Offset(x, y);
+}
+
+
+List<Offset> catRomSpline(List<Offset> controlPoints) {
+  List<Offset> nCP = controlPoints;
+  nCP.insert(0, controlPoints[0]);
+  nCP.add(controlPoints.last);
+  List<Offset> listPoints = [];
+  for (int i = 1; i < nCP.length - 2; i++) {
+    for (double t = 0.0; t < 1.0; t += 0.05) {
+      listPoints.add(cmr(nCP[i - 1], nCP[i], nCP[i + 1], nCP[i + 2], t));
+    }
   }
   return listPoints;
 }
