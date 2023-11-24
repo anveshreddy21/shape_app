@@ -279,6 +279,12 @@ Map<String, dynamic> shapeDecider(
       double aByb = minMaxResults['a'] / minMaxResults['b'];
 
       if (err < 0.075) {
+        List<Offset> listPoints = [];
+
+        for (int i = 0; i < 100; i++) {
+          listPoints.add(Offset(
+              h + r * cos(i * 2 * pi / 100), k + r * sin(i * 2 * pi / 100)));
+        }
         return {
           'shape': 'Circle',
           'points': rdpPoints,
@@ -286,7 +292,8 @@ Map<String, dynamic> shapeDecider(
           'centerX': h,
           'centerY': k,
           'radius': r,
-          'error': err
+          'error': err,
+          'listPoints': listPoints
         };
       }
       if (err < 0.15 &&
@@ -294,6 +301,13 @@ Map<String, dynamic> shapeDecider(
           boxRatio < 1.3 &&
           aByb > 0.8 &&
           aByb < 1.35) {
+        List<Offset> listPoints = [];
+
+        for (int i = 0; i < 100; i++) {
+          listPoints.add(Offset(
+              h + r * cos(i * 2 * pi / 100), k + r * sin(i * 2 * pi / 100)));
+        }
+
         return {
           'shape': 'Circle',
           'points': rdpPoints,
@@ -301,12 +315,22 @@ Map<String, dynamic> shapeDecider(
           'centerX': h,
           'centerY': k,
           'radius': r,
-          'error': err
+          'error': err,
+          'listPoints': listPoints
         };
       }
 
       double angle = minMaxResults['tilt'];
-      if (angle.abs() <= pi / 12) {
+      if (angle.abs() <= 15) {
+        List<Offset> listPoints = [];
+        double a = minMaxResults['a'];
+        double b = minMaxResults['b'];
+
+        for (int i = 0; i < 100; i++) {
+          listPoints.add(Offset(
+              h + a * cos(i * 2 * pi / 100), k + b * sin(i * 2 * pi / 100)));
+        }
+
         return {
           'shape': 'Ellipse',
           'subShape': 'Horizontal Ellipse',
@@ -314,11 +338,26 @@ Map<String, dynamic> shapeDecider(
           'center': Offset(h, k),
           'centerX': h,
           'centerY': k,
-          'a': minMaxResults['a'],
-          'b': minMaxResults['b'],
-          'error': err
+          'a': a,
+          'b': b,
+          'error': err,
+          'listPoints': listPoints
         };
       } else {
+        print(angle);
+        List<Offset> listPoints = [];
+        double a = minMaxResults['a'];
+        double b = minMaxResults['b'];
+
+        for (int i = 0; i < 100; i++) {
+          listPoints.add(rotateScalePoint(
+              Offset(
+                  h + a * cos(i * 2 * pi / 100), k + b * sin(i * 2 * pi / 100)),
+              Offset(h, k),
+              angle,
+              1));
+        }
+
         return {
           'shape': 'Ellipse',
           'subShape': 'Tilted Ellipse',
@@ -326,10 +365,11 @@ Map<String, dynamic> shapeDecider(
           'center': Offset(h, k),
           'centerX': h,
           'centerY': k,
-          'a': minMaxResults['a'],
-          'b': minMaxResults['b'],
+          'a': a,
+          'b': b,
           'angle': angle,
-          'error': err
+          'error': err,
+          'listPoints': listPoints
         };
       }
     }
@@ -488,7 +528,7 @@ Map<String, dynamic> minMaxMethod(List<Offset> points) {
   } else {
     tilt = pi / 2;
   }
-
+  tilt = tilt * 180 / pi;
   Offset nearestPoint = points[dist.indexOf(b)];
 
   return {

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'analysis.dart';
 import 'shape_refinement.dart';
@@ -76,7 +78,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     rdpIndices = result['indices'] as List<int>;
                     localAngles =
                         calculateLocalAngles(currentStroke, rdpIndices);
-                    
+
                     rdpPoints = closure(currentStroke, rdpPoints);
                     shape = shapeDecider(currentStroke, rdpPoints, localAngles);
                   });
@@ -184,48 +186,32 @@ class MyPainter extends CustomPainter {
       ..strokeWidth = 6.0;
 
     if (shape['shape'] == 'Circle') {
-      canvas.drawCircle(shape['center'], shape['radius'], shapePaint);
+      List<Offset> listPoints = shape['listPoints'];
+
+      for (int i = 0; i < listPoints.length - 1; i++) {
+        canvas.drawLine(listPoints[i], listPoints[i + 1], shapePaint);
+      }
     } else if (shape['subShape'] == 'Horizontal Ellipse') {
-      double a = shape['a'];
-      a = 2 * a;
-      double b = shape['b'];
-      b = 2 * b;
-      canvas.drawOval(
-          Rect.fromCenter(center: shape['center'], width: a, height: b),
-          shapePaint);
+      List<Offset> listPoints = shape['listPoints'];
+
+      for (int i = 0; i < listPoints.length - 1; i++) {
+        canvas.drawLine(listPoints[i], listPoints[i + 1], shapePaint);
+      }
     } else if (shape['subShape'] == 'Tilted Ellipse') {
-      double a = shape['a']; // Semi-major axis
-      double b = shape['b']; // Semi-minor axis
-      Offset center = shape['center']; // Center of the ellipse
-      double angle = shape['angle']; // Rotation angle in radians
+      List<Offset> listPoints = shape['listPoints'];
 
-      // Create a rect where the ellipse will be drawn
-      Rect rect = Rect.fromCenter(center: center, width: a * 2, height: b * 2);
-
-      // Save the current canvas state
-      canvas.save();
-
-      // Move the canvas to the center of where you want your ellipse
-      canvas.translate(center.dx, center.dy);
-
-      // Apply the rotation
-      canvas.rotate(angle);
-
-      // Move the canvas back to the original position
-      canvas.translate(-center.dx, -center.dy);
-
-      // Draw the oval
-      canvas.drawOval(rect, shapePaint);
-
-      // Restore the canvas to its original state
-      canvas.restore();
+      for (int i = 0; i < listPoints.length - 1; i++) {
+        canvas.drawLine(listPoints[i], listPoints[i + 1], shapePaint);
+      }
+      
     } else if (shape['shape'] == 'Triangle') {
       List<Offset> vertices = finalTriangle(shape['points']);
 
       for (int i = 0; i < 3; i++) {
         canvas.drawLine(vertices[i], vertices[(i + 1) % 3], shapePaint);
       }
-    } else if (shape['shape'] == 'Quadrilateral' && shape['subShape'] != 'Concave Quadrilateral')  {
+    } else if (shape['shape'] == 'Quadrilateral' &&
+        shape['subShape'] != 'Concave Quadrilateral') {
       Map<String, dynamic> verticesQuadType;
       verticesQuadType = finalQuadrilateral(shape['points']);
       List<Offset> vertices = verticesQuadType['vertices'] as List<Offset>;
@@ -233,7 +219,8 @@ class MyPainter extends CustomPainter {
       for (int i = 0; i < 4; i++) {
         canvas.drawLine(vertices[i], vertices[(i + 1) % 4], shapePaint);
       }
-    } else if (shape['shape'] == 'PolyLine' || shape['subShape'] == 'Concave Quadrilateral' ) {
+    } else if (shape['shape'] == 'PolyLine' ||
+        shape['subShape'] == 'Concave Quadrilateral') {
       List<Offset> vertices = shape['points'];
 
       for (int i = 0; i < vertices.length - 1; i++) {
