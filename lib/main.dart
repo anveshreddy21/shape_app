@@ -201,7 +201,6 @@ class MyPainter extends CustomPainter {
       for (int i = 0; i < listPoints.length - 1; i++) {
         canvas.drawLine(listPoints[i], listPoints[i + 1], shapePaint);
       }
-      
     } else if (shape['shape'] == 'Triangle') {
       List<Offset> vertices = finalTriangle(shape['points']);
 
@@ -239,20 +238,11 @@ class MyPainter extends CustomPainter {
             vertices[i], vertices[(i + 1) % vertices.length], shapePaint);
       }
     } else if (shape['shape'] == 'Curve') {
-      List<Offset> controlPoints = shape['points'];
+      List<Offset> listPoints = shape['listPoints'];
 
-      final spline = CatmullRomSpline(controlPoints, tension: 0);
-
-      final path = Path();
-      path.moveTo(controlPoints.first.dx, controlPoints.first.dy);
-      for (double t = 0.0; t < 1.0; t += 0.01) {
-        final point = spline.transform(t);
-        path.lineTo(point.dx, point.dy);
+      for (int i = 0; i < listPoints.length-1; i++) {
+        canvas.drawLine(listPoints[i], listPoints[i+1], shapePaint);
       }
-      path.moveTo(controlPoints.last.dx, controlPoints.last.dy);
-
-      // Draw the path on the canvas.
-      canvas.drawPath(path, shapePaint);
     }
   }
 

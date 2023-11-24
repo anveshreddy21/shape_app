@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'dart:ui';
+import 'package:flutter/material.dart';
 import 'shape_refinement.dart';
 
 Map<String, dynamic> rdpNRWithIndices(List<Offset> points,
@@ -187,7 +187,8 @@ Map<String, dynamic> shapeDecider(
       };
     }
     if (localAngles.every((angle) => angle < 30)) {
-      return {'shape': 'Curve', 'points': rdpPoints};
+      List<Offset> listPoints = catRom(rdpPoints);
+      return {'shape': 'Curve', 'points': rdpPoints, 'listPoints': listPoints};
     } else {
       return {'shape': 'PolyLine', 'points': rdpPoints};
     }
@@ -222,7 +223,8 @@ Map<String, dynamic> shapeDecider(
       return {'shape': 'Concave Polygon', 'points': rdpPoints};
     }
     if (localAngles.every((angle) => angle < 30)) {
-      return {'shape': 'Curve', 'points': rdpPoints};
+      List<Offset> listPoints = catRom(rdpPoints);
+      return {'shape': 'Curve', 'points': rdpPoints, 'listPoints': listPoints};
     } else {
       return {'shape': 'PolyLine', 'points': rdpPoints};
     }
@@ -253,7 +255,8 @@ Map<String, dynamic> shapeDecider(
     }
 
     if (localAngles.every((angle) => angle < 30)) {
-      return {'shape': 'Curve', 'points': rdpPoints};
+      List<Offset> listPoints = catRom(rdpPoints);
+      return {'shape': 'Curve', 'points': rdpPoints, 'listPoints': listPoints};
     } else {
       return {'shape': 'PolyLine', 'points': rdpPoints};
     }
@@ -344,7 +347,6 @@ Map<String, dynamic> shapeDecider(
           'listPoints': listPoints
         };
       } else {
-       
         List<Offset> listPoints = [];
         double a = minMaxResults['a'];
         double b = minMaxResults['b'];
@@ -382,7 +384,8 @@ Map<String, dynamic> shapeDecider(
     }
 
     if ((localAngles.reduce((a, b) => a + b)) / localAngles.length < 25) {
-      return {'shape': 'Curve', 'points': rdpPoints};
+      List<Offset> listPoints = catRom(rdpPoints);
+      return {'shape': 'Curve', 'points': rdpPoints, 'listPoints': listPoints};
     } else {
       return {'shape': 'PolyLine', 'points': rdpPoints};
     }
@@ -397,7 +400,8 @@ Map<String, dynamic> shapeDecider(
       return {'shape': 'Concave Polygon', 'points': polyVertices};
     }
     if ((localAngles.reduce((a, b) => a + b)) / localAngles.length < 25) {
-      return {'shape': 'Curve', 'points': rdpPoints};
+      List<Offset> listPoints = catRom(rdpPoints);
+      return {'shape': 'Curve', 'points': rdpPoints, 'listPoints': listPoints};
     } else {
       return {'shape': 'PolyLine', 'points': rdpPoints};
     }
@@ -405,6 +409,8 @@ Map<String, dynamic> shapeDecider(
     return {'shape': 'NoShape', 'points': rdpPoints};
   }
 }
+
+
 
 //Circle handling
 Map<String, dynamic> leastSquaresCircle(List<Offset> points) {
@@ -541,4 +547,16 @@ Map<String, dynamic> minMaxMethod(List<Offset> points) {
     'farthestPoint': farthestPoint,
     'nearestPoint': nearestPoint,
   };
+}
+
+
+//Curve
+List<Offset> catRom(List<Offset> controlPoints) {
+  List<Offset> listPoints = [];
+
+  final spline = CatmullRomSpline(controlPoints, tension: 0);
+  for (double t = 0.0; t < 1.0; t += 0.01) {
+    listPoints.add(spline.transform(t));
+  }
+  return listPoints;
 }
